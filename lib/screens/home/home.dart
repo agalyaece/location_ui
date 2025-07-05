@@ -37,14 +37,29 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Start general location tracking (which now also feeds the live stream)
     LocationService.startLocationTracking();
-
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentLiveLocation != null) {
+        _mapController.move(
+          LatLng(
+            _currentLiveLocation!.latitude,
+            _currentLiveLocation!.longitude,
+          ),
+          14.0,
+        );
+      }
+    });
     // Listen to the live location stream
-    _liveLocationSubscription = LocationService.liveLocationStream.listen((position) {
+    _liveLocationSubscription = LocationService.liveLocationStream.listen((
+      position,
+    ) {
       setState(() {
         _currentLiveLocation = position;
         // Move the map to the live location if it's the first update or if user wants auto-follow
         // You might want a toggle for "follow me" vs. manually pan
-        _mapController.move(LatLng(position.latitude, position.longitude), _mapController.camera.zoom < 14.0 ? 14.0 : _mapController.camera.zoom);
+        _mapController.move(
+          LatLng(position.latitude, position.longitude),
+          _mapController.camera.zoom < 14.0 ? 14.0 : _mapController.camera.zoom,
+        );
       });
     });
 
@@ -54,7 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _liveLocationSubscription?.cancel(); // Cancel the live location stream subscription
+    _liveLocationSubscription
+        ?.cancel(); // Cancel the live location stream subscription
     // LocationService.stopLocationTracking(); // This is called on logout, not just dispose
     super.dispose();
   }
@@ -114,21 +130,33 @@ class _HomeScreenState extends State<HomeScreen> {
         LatLng(maxLat + 0.001, maxLon + 0.001),
       ]);
 
-
       // Move the main map camera to fit these historical points
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _mapController.fitCamera(
         CameraFit.bounds(
           bounds: paddedBounds,
-          padding: EdgeInsets.only(top: 10.0, bottom: 10.0, left: 10.0, right: 10.0), // Optional padding
+          padding: EdgeInsets.only(
+            top: 10.0,
+            bottom: 10.0,
+            left: 10.0,
+            right: 10.0,
+          ), // Optional padding
         ),
       );
-    } else {
-      // If no locations, reset map to a default view (e.g., world view or last known live location)
-      _mapController.move(_currentLiveLocation != null ?
-          LatLng(_currentLiveLocation!.latitude, _currentLiveLocation!.longitude) : LatLng(0.0, 0.0),
-          _currentLiveLocation != null ? 14.0 : 2.0);
-    }
+    });
+  } else {
+    // If no locations, reset map to a default view (e.g., world view or last known live location)
+    _mapController.move(
+      _currentLiveLocation != null
+          ? LatLng(
+              _currentLiveLocation!.latitude,
+              _currentLiveLocation!.longitude,
+            )
+          : LatLng(0.0, 0.0),
+      _currentLiveLocation != null ? 14.0 : 2.0,
+    );
   }
+}
 
   // Opens a date picker to select a date for summary
   Future<void> _selectDate(BuildContext context) async {
@@ -157,11 +185,17 @@ class _HomeScreenState extends State<HomeScreen> {
         final place = placemarks.first;
         // Prioritize street, then subLocality, then locality, etc.
         final addressParts = <String>[];
-        if (place.street != null && place.street!.isNotEmpty) addressParts.add(place.street!);
-        if (place.subLocality != null && place.subLocality!.isNotEmpty) addressParts.add(place.subLocality!);
-        if (place.locality != null && place.locality!.isNotEmpty) addressParts.add(place.locality!);
-        if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) addressParts.add(place.administrativeArea!);
-        if (place.country != null && place.country!.isNotEmpty) addressParts.add(place.country!);
+        if (place.street != null && place.street!.isNotEmpty)
+          addressParts.add(place.street!);
+        if (place.subLocality != null && place.subLocality!.isNotEmpty)
+          addressParts.add(place.subLocality!);
+        if (place.locality != null && place.locality!.isNotEmpty)
+          addressParts.add(place.locality!);
+        if (place.administrativeArea != null &&
+            place.administrativeArea!.isNotEmpty)
+          addressParts.add(place.administrativeArea!);
+        if (place.country != null && place.country!.isNotEmpty)
+          addressParts.add(place.country!);
 
         final address = addressParts.join(', ');
         if (address.isNotEmpty) {
@@ -214,21 +248,33 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Determine initial map center and zoom for the main map
     // Based on live location if available, otherwise a default
-    final LatLng initialMapCenter = _currentLiveLocation != null
-        ? LatLng(_currentLiveLocation!.latitude, _currentLiveLocation!.longitude)
-        : LatLng(20.5937, 78.9629); // Default to India if no live location yet
-    final double initialMapZoom = _currentLiveLocation != null ? 14.0 : 5.0; // Zoom in for live, out for default
+    final LatLng initialMapCenter =
+        _currentLiveLocation != null
+            ? LatLng(
+              _currentLiveLocation!.latitude,
+              _currentLiveLocation!.longitude,
+            )
+            : LatLng(
+              20.5937,
+              78.9629,
+            ); // Default to India if no live location yet
+    final double initialMapZoom =
+        _currentLiveLocation != null
+            ? 14.0
+            : 5.0; // Zoom in for live, out for default
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Live Location Tracker'),
-        leading: Builder( // Use Builder to get the correct context for Scaffold.of
-          builder: (context) => IconButton(
-            icon: Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer(); // Open the sidebar
-            },
-          ),
+        leading: Builder(
+          // Use Builder to get the correct context for Scaffold.of
+          builder:
+              (context) => IconButton(
+                icon: Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer(); // Open the sidebar
+                },
+              ),
         ),
         actions: [
           // Button to recenter map on live location
@@ -238,7 +284,10 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               if (_currentLiveLocation != null) {
                 _mapController.move(
-                  LatLng(_currentLiveLocation!.latitude, _currentLiveLocation!.longitude),
+                  LatLng(
+                    _currentLiveLocation!.latitude,
+                    _currentLiveLocation!.longitude,
+                  ),
                   16.0, // Zoom level for current location
                 );
               } else {
@@ -270,62 +319,68 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: _buildDrawer(), // The new sidebar drawer
-      body: Stack( // Using Stack to allow placing overlays if needed later
+      body: Stack(
+        // Using Stack to allow placing overlays if needed later
         children: [
           // Main Map View Area for Live Location
           _currentLiveLocation == null
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 10),
-                      Text('Waiting for live location...'),
-                      Text('Ensure location services are enabled and permissions granted.'),
-                    ],
-                  ),
-                )
-              : FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: initialMapCenter,
-                    initialZoom: initialMapZoom,
-                    minZoom: 1.0,
-                    maxZoom: 18.0,
-                    // Optionally disable panning if you always want it centered on live location
-                    // interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.location_ui_app', // Replace with your app's package name
-                    ),
-                    // Marker for the current live location
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          width: 80.0,
-                          height: 80.0,
-                          point: LatLng(
-                            _currentLiveLocation!.latitude,
-                            _currentLiveLocation!.longitude,
-                          ),
-                          child: Tooltip(
-                            message:
-                                'Your Live Location\nLat: ${_currentLiveLocation!.latitude.toStringAsFixed(6)}\nLon: ${_currentLiveLocation!.longitude.toStringAsFixed(6)}\nTime: ${_currentLiveLocation!.timestamp.toLocal().hour}:${_currentLiveLocation!.timestamp.toLocal().minute.toString().padLeft(2, '0')}',
-                            child: Icon(
-                              Icons.my_location,
-                              color: Colors.red, // Distinct color for live location
-                              size: 45.0,
-                            ),
-                          ),
-                        ),
-                        // Add markers for daily summary if you want to see them on the main map too
-                        // This might clutter the live map, so generally kept separate in drawer view
-                      ],
+                    CircularProgressIndicator(),
+                    SizedBox(height: 10),
+                    Text('Waiting for live location...'),
+                    Text(
+                      'Ensure location services are enabled and permissions granted.',
                     ),
                   ],
                 ),
+              )
+              : FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: initialMapCenter,
+                  initialZoom: initialMapZoom,
+                  minZoom: 1.0,
+                  maxZoom: 18.0,
+                  // Optionally disable panning if you always want it centered on live location
+                  // interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName:
+                        'com.example.location_ui_app', // Replace with your app's package name
+                  ),
+                  // Marker for the current live location
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        width: 80.0,
+                        height: 80.0,
+                        point: LatLng(
+                          _currentLiveLocation!.latitude,
+                          _currentLiveLocation!.longitude,
+                        ),
+                        child: Tooltip(
+                          message:
+                              'Your Live Location\nLat: ${_currentLiveLocation!.latitude.toStringAsFixed(6)}\nLon: ${_currentLiveLocation!.longitude.toStringAsFixed(6)}\nTime: ${_currentLiveLocation!.timestamp.toLocal().hour}:${_currentLiveLocation!.timestamp.toLocal().minute.toString().padLeft(2, '0')}',
+                          child: Icon(
+                            Icons.my_location,
+                            color:
+                                Colors.red, // Distinct color for live location
+                            size: 45.0,
+                          ),
+                        ),
+                      ),
+                      // Add markers for daily summary if you want to see them on the main map too
+                      // This might clutter the live map, so generally kept separate in drawer view
+                    ],
+                  ),
+                ],
+              ),
         ],
       ),
     );
@@ -342,9 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-            ),
+            decoration: BoxDecoration(color: Theme.of(context).primaryColor),
             child: SizedBox(
               width: double.infinity,
               child: Column(
@@ -353,25 +406,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     'Location History',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
+                    style: TextStyle(color: Colors.white, fontSize: 24),
                   ),
                   SizedBox(height: 8),
                   Text(
                     'View your past tracks',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                 ],
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -405,106 +455,138 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 10),
           // Raw Location Points List Title
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Text(
               'Raw Location Points',
               style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
           Expanded(
             flex: 1, // List takes less vertical space than grouped list
-            child: _dailyLocations.isEmpty
-                ? Center(child: Text('No raw location data for this day.'))
-                : ListView.builder(
-                    itemCount: _dailyLocations.length,
-                    itemBuilder: (context, index) {
-                      final location = _dailyLocations[index];
-                      final timestamp = DateTime.parse(location['timestamp']).toLocal();
-                      final lat = location['latitude'];
-                      final lon = location['longitude'];
+            child:
+                _dailyLocations.isEmpty
+                    ? Center(child: Text('No raw location data for this day.'))
+                    : ListView.builder(
+                      itemCount: _dailyLocations.length,
+                      itemBuilder: (context, index) {
+                        final location = _dailyLocations[index];
+                        final timestamp =
+                            DateTime.parse(location['timestamp']).toLocal();
+                        final lat = location['latitude'];
+                        final lon = location['longitude'];
 
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Time: ${formatTime(timestamp)}'),
-                              FutureBuilder<String>(
-                                future: _getAddress(lat, lon),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return Text('Resolving address...');
-                                  }
-                                  if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                                    return Text('Address not found: Lat: ${lat.toStringAsFixed(6)}, Lon: ${lon.toStringAsFixed(6)}');
-                                  }
-                                  return Text(snapshot.data!);
-                                },
-                              ),
-                            ],
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                            vertical: 5,
+                            horizontal: 16,
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Time: ${formatTime(timestamp)}'),
+                                FutureBuilder<String>(
+                                  future: _getAddress(lat, lon),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Text('Resolving address...');
+                                    }
+                                    if (snapshot.hasError ||
+                                        !snapshot.hasData ||
+                                        snapshot.data!.isEmpty) {
+                                      return Text(
+                                        'Address not found: Lat: ${lat.toStringAsFixed(6)}, Lon: ${lon.toStringAsFixed(6)}',
+                                      );
+                                    }
+                                    return Text(snapshot.data!);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
           ),
           SizedBox(height: 10),
           // Grouped Locations List Title
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Text(
               'Grouped Locations (Places Visited)',
               style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
           Expanded(
             flex: 2, // Grouped list takes more vertical space
-            child: groupedLocations.isEmpty
-                ? Center(child: Text('No grouped location data for this day.'))
-                : ListView.builder(
-                    itemCount: groupedLocations.length,
-                    itemBuilder: (context, index) {
-                      final group = groupedLocations[index];
-                      final lat = group['lat'];
-                      final lon = group['lon'];
-                      final from = group['from'];
-                      final to = group['to'];
-                      final count = group['count']; // How many points at this location
+            child:
+                groupedLocations.isEmpty
+                    ? Center(
+                      child: Text('No grouped location data for this day.'),
+                    )
+                    : ListView.builder(
+                      itemCount: groupedLocations.length,
+                      itemBuilder: (context, index) {
+                        final group = groupedLocations[index];
+                        final lat = group['lat'];
+                        final lon = group['lon'];
+                        final from = group['from'];
+                        final to = group['to'];
+                        final count =
+                            group['count']; // How many points at this location
 
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 5, horizontal: 16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('From: ${formatTime(from)} - To: ${formatTime(to)}'),
-                              Text('Duration: ${Duration(seconds: to.difference(from).inSeconds).toString().split('.').first}'),
-                              Text('Points Recorded: $count'),
-                              FutureBuilder<String>(
-                                future: _getAddress(lat, lon),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return Text('Resolving address...');
-                                  }
-                                  if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                                    return Text('Address not found: Lat: ${lat.toStringAsFixed(6)}, Lon: ${lon.toStringAsFixed(6)}');
-                                  }
-                                  return Text(snapshot.data!);
-                                },
-                              ),
-                            ],
+                        return Card(
+                          margin: EdgeInsets.symmetric(
+                            vertical: 5,
+                            horizontal: 16,
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'From: ${formatTime(from)} - To: ${formatTime(to)}',
+                                ),
+                                Text(
+                                  'Duration: ${Duration(seconds: to.difference(from).inSeconds).toString().split('.').first}',
+                                ),
+                                Text('Points Recorded: $count'),
+                                FutureBuilder<String>(
+                                  future: _getAddress(lat, lon),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Text('Resolving address...');
+                                    }
+                                    if (snapshot.hasError ||
+                                        !snapshot.hasData ||
+                                        snapshot.data!.isEmpty) {
+                                      return Text(
+                                        'Address not found: Lat: ${lat.toStringAsFixed(6)}, Lon: ${lon.toStringAsFixed(6)}',
+                                      );
+                                    }
+                                    return Text(snapshot.data!);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),

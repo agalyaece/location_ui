@@ -1,6 +1,7 @@
 import 'package:location_ui/services/auth_service.dart';
 
-const baseUrl = "http://192.168.1.2:3000/";
+// const baseUrl = "http://192.168.1.2:3000/";
+const baseUrl= "https://location-ws-1.onrender.com/";
 
 const sendOtpUrl = "${AuthService.baseTokenUrl}login/auth/send-otp";
 const verifyOtpUrl = "${AuthService.baseTokenUrl}login/auth/verify-otp";
